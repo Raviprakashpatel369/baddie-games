@@ -2,7 +2,9 @@
   --bg: #14121f; --panel: #1f1b30; --panel2: #2a2540; --text: #f1eefc; --muted: #9a93b8;
   --accent: #ff4fa3; --accent2: #7c5cff; --good: #3ddc97; --bad: #ff5c6c; --warn: #ffb84d;
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; font-family: inherit; }
+html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: radial-gradient(circle at top, #251d44, var(--bg) 60%) fixed; color: var(--text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; min-height: 100vh; }
 .top { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; }
@@ -58,7 +60,41 @@ button.link { background: none; border: 0; color: var(--accent); cursor: pointer
 .f7bar { display: flex; gap: 24px; justify-content: center; padding: 8px; color: var(--muted); }
 .f7bar b { color: var(--text); }
 .f7main { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
-@media (max-width: 800px) { .f7main { grid-template-columns: 1fr; } }
+/* Mobile-first game layout: actions pinned on top, my hand first, then others, then log. */
+@media (max-width: 800px) {
+  .f7main { grid-template-columns: 1fr; gap: 10px; }
+  aside { display: contents; }               /* lift aside children into .f7main's grid */
+  .ctl { order: 0; position: sticky; top: 0; z-index: 4; border-radius: 0 0 16px 16px;
+    margin: 0 -16px; padding: 10px 16px 12px; box-shadow: 0 6px 18px #000a; background: #241e3d; }
+  .ctl p { margin: 0 0 8px; font-size: .95rem; }
+  .f7players { order: 1; grid-template-columns: 1fr; gap: 10px; }
+  .pp.me { order: -1; }
+  .log { order: 2; max-height: 200px; }
+  .rules { order: 3; }
+  .f7bar { gap: 14px; padding: 4px; font-size: .85rem; position: static; }
+  .btn.big { padding: 18px 12px; font-size: 1.15rem; min-height: 56px; }
+  .targets { grid-template-columns: 1fr 1fr; }
+  .targets .btn { min-height: 48px; }
+  .fc { width: 36px; height: 52px; font-size: 1.05rem; }
+  .fc.a { height: 52px; }
+  .hand { min-height: 52px; gap: 5px; }
+  .pp { padding: 10px; }
+  .overlay { align-items: end; padding: 0; }
+  .overlay .card { border-radius: 20px 20px 0 0; max-height: 92vh; overflow: auto; max-width: none;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+  .overlay .btn.primary { min-height: 56px; font-size: 1.1rem; }
+}
+@media (max-width: 560px) {
+  .top { padding: 10px 14px; }
+  .top h1 { font-size: 1.1rem; }
+  main { padding: 0 12px calc(32px + env(safe-area-inset-bottom)); }
+  .ctl { margin: 0 -12px; padding-left: 12px; padding-right: 12px; }
+  .card { padding: 16px; border-radius: 14px; }
+  .roomcode b { font-size: 2rem; }
+  .btn { min-height: 48px; }
+  .gamebtn { padding: 14px 12px; }
+  .players li { padding: 12px; }
+}
 .f7players { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .pp { background: var(--panel); border-radius: 14px; padding: 12px; border: 2px solid transparent; }
 .pp.turn { border-color: var(--accent); box-shadow: 0 0 18px #ff4fa355; }
