@@ -39,8 +39,8 @@ const server = http.createServer((req, res) => {
 const rooms = new Map();
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_PLAYERS = 12;
-const AUTO_PLAY_MS = 20000;
-const LOBBY_GRACE_MS = 30000;
+const AUTO_PLAY_MS = Number(process.env.AUTO_PLAY_MS) || 20000;
+const LOBBY_GRACE_MS = Number(process.env.GRACE_MS) || 30000;
 
 function makeCode() {
   for (;;) {
@@ -114,7 +114,28 @@ function removePlayer(room, id) {
   }
 }
 
+function uniqueName(room, name) {
+  const taken = new Set([...room.players.values()].map((q) => q.name.toLowerCase()));
+  if (!taken.has(name.toLowerCase())) return name;
+  for (let i = 2; ; i++) {
+    const cand = `${name.slice(0, 13)} ${i}`;
+    if (!taken.has(cand.toLowerCase())) return cand;
+  }
+}
+
+// If the host stays disconnected, hand host to a connected player so the room never gets stuck.
+function reassignHostIfAway(room, hostId) {
+  const host = room.players.get(hostId);
+  if (room.hostId !== hostId || !host || host.connected) return;
+  const next = [...room.players.values()].find((p) => p.connected);
+  if (next) {
+    room.hostId = next.id;
+    broadcast(room);
+  }
+}
+
 function addPlayer(room, name, ws) {
+  name = uniqueName(room, name);
   const p = {
     id: crypto.randomBytes(4).toString('hex'),
     secret: crypto.randomBytes(16).toString('hex'),
@@ -218,7 +239,10 @@ const handlers = {
     player.connected = false;
     player.ws = null;
     if (room.phase === 'lobby') removePlayer(room, player.id);
-    else broadcast(room);
+    else {
+      if (room.hostId === player.id) reassignHostIfAway(room, player.id);
+      broadcast(room);
+    }
   },
 };
 
@@ -249,13 +273,11 @@ wss.on('connection', (ws) => {
     player.connected = false;
     player.ws = null;
     broadcast(room);
-    if (room.phase === 'lobby') {
-      setTimeout(() => {
-        if (!player.connected && room.players.get(player.id) === player && room.phase === 'lobby') {
-          removePlayer(room, player.id);
-        }
-      }, LOBBY_GRACE_MS);
-    }
+    setTimeout(() => {
+      if (player.connected || room.players.get(player.id) !== player) return;
+      if (room.phase === 'lobby') removePlayer(room, player.id);
+      else reassignHostIfAway(room, player.id);
+    }, LOBBY_GRACE_MS);
   });
 });
 

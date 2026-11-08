@@ -57,8 +57,8 @@ function connect() {
         session = { name: session.name };
         save();
         state = null;
-        render();
       }
+      if (state || m.fatal) render(); // also re-enables any buttons the UI disabled while waiting
     }
   };
   ws.onclose = () => {

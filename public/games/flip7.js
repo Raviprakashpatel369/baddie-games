@@ -3,16 +3,21 @@
   const ACTION_LABEL = { freeze: '❄ Freeze', flip3: '🎴 Flip 3' };
   const STATUS_LABEL = { active: '', stayed: 'Stayed', busted: 'BUST', frozen: 'Frozen' };
 
-  const numCard = (v) => `<div class="fc n n${v}">${v}</div>`;
-  const modCard = (m) => `<div class="fc m">${m}</div>`;
+  // Remember how many cards each player had last render so only new cards animate.
+  let seen = {};
+  let seenRound = 0;
+  let rulesOpen = false;
+  const numCard = (v, fresh) => `<div class="fc n n${v}${fresh ? ' new' : ''}">${v}</div>`;
+  const modCard = (m, fresh) => `<div class="fc m${fresh ? ' new' : ''}">${m}</div>`;
 
   function playerPanel(g, p, ctx) {
     const turn = g.turn === p.id && !g.pending;
     const cls = ['pp', p.status, turn ? 'turn' : '', p.id === ctx.you ? 'me' : ''].join(' ');
+    const prev = seen[p.id] || { n: 0, m: 0, s: false };
     const cards =
-      p.numbers.map(numCard).join('') +
-      p.mods.map(modCard).join('') +
-      (p.second ? '<div class="fc a">♥ 2nd Chance</div>' : '');
+      p.numbers.map((v, i) => numCard(v, i >= prev.n)).join('') +
+      p.mods.map((m, i) => modCard(m, i >= prev.m)).join('') +
+      (p.second ? `<div class="fc a${prev.s ? '' : ' new'}">♥ 2nd Chance</div>` : '');
     return `<div class="${cls}">
       <div class="pph">
         <b>${esc(p.name)}${p.id === ctx.you ? ' (you)' : ''}</b>
@@ -29,6 +34,7 @@
   }
 
   function controls(g, ctx) {
+    if (g.phase !== 'playing') return '';
     const byId = Object.fromEntries(g.players.map((p) => [p.id, p]));
     if (g.pending) {
       const who = byId[g.pending.from];
@@ -60,7 +66,7 @@
       .map(
         (r) => `<tr class="${r.id === g.winner ? 'win' : ''}">
           <td>${esc(r.name)}${r.flip7 ? ' 🎉' : ''}</td>
-          <td>${r.status === 'busted' ? '<span class="pill st-busted">BUST</span>' : STATUS_LABEL[r.status] || 'Played'}</td>
+          <td>${r.status === 'busted' ? '<span class="pill st-busted">BUST</span>' : r.flip7 ? 'Flip 7!' : STATUS_LABEL[r.status] || 'Played'}</td>
           <td>+${r.points}</td><td><b>${r.total}</b></td></tr>`
       )
       .join('');
@@ -80,7 +86,8 @@
 
   window.Games.flip7 = {
     render(el, g, ctx) {
-      el.innerHTML = `
+      if (g.round !== seenRound) { seen = {}; seenRound = g.round; }
+      const html = `
         <div class="f7">
           <div class="f7bar">
             <span>Round <b>${g.round}</b></span>
@@ -92,7 +99,7 @@
             <aside>
               ${controls(g, ctx)}
               <div class="log">${[...g.log].reverse().map((l) => `<div>${esc(l)}</div>`).join('')}</div>
-              <details class="rules"><summary>How to play</summary>
+              <details class="rules"${rulesOpen ? ' open' : ''}><summary>How to play</summary>
                 <p>On your turn, <b>flip</b> a card or <b>stay</b> to bank your points.</p>
                 <p>Flip a number you already hold and you <b>bust</b> (0 points this round).</p>
                 <p><b>7 unique numbers</b> ends the round with +${g.bonus}.</p>
@@ -102,11 +109,18 @@
           </div>
           ${overlay(g, ctx)}
         </div>`;
+      el.innerHTML = html;
+      seen = Object.fromEntries(g.players.map((p) => [p.id, { n: p.numbers.length, m: p.mods.length, s: p.second }]));
       el.onclick = (e) => {
+        if (e.target.closest('summary')) rulesOpen = !rulesOpen;
         const b = e.target.closest('[data-f7]');
         if (!b || b.disabled) return;
         const k = b.dataset.f7;
-        if (k === 'hit' || k === 'stay' || k === 'next') ctx.send({ type: k });
+        if (k === 'hit' || k === 'stay' || k === 'next') {
+          // Block double-clicks: the next state from the server re-renders and re-enables the buttons.
+          for (const btn of el.querySelectorAll('[data-f7]')) btn.disabled = true;
+          ctx.send({ type: k });
+        }
         else if (k === 'target') ctx.send({ type: 'target', target: b.dataset.id });
         else if (k === 'lobby') ctx.backToLobby();
       };
