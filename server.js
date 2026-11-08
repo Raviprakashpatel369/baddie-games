@@ -77,6 +77,21 @@ function stateFor(room, p) {
 function broadcast(room) {
   for (const p of room.players.values()) send(p.ws, stateFor(room, p));
   scheduleAuto(room);
+  scheduleTick(room);
+}
+
+// Games with timed phases (e.g. the Nope window) expose nextDeadline() and tick(now).
+function scheduleTick(room) {
+  clearTimeout(room.tickTimer);
+  room.tickTimer = null;
+  const dl = room.game && room.game.nextDeadline && room.game.nextDeadline();
+  if (!dl) return;
+  room.tickTimer = setTimeout(() => {
+    room.tickTimer = null;
+    if (rooms.get(room.code) !== room || !room.game) return;
+    if (room.game.tick(Date.now())) broadcast(room);
+    else scheduleTick(room);
+  }, Math.max(0, dl - Date.now()) + 15);
 }
 
 // If the player whose move it is has disconnected, auto-play for them after a grace period.
