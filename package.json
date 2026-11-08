@@ -1,0 +1,13 @@
+{
+  "name": "baddie-games",
+  "version": "0.1.0",
+  "description": "Room-based multiplayer party games",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/flip7.test.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
