@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test/flip7.test.js && node test/flip7.ui.test.js && node test/e2e.test.js && node test/kittens.test.js && node test/kittens.ui.test.js && node test/e2e.kittens.test.js"
+    "test": "node test/flip7.test.js && node test/flip7.ui.test.js && node test/e2e.test.js && node test/kittens.test.js && node test/kittens.ui.test.js && node test/e2e.kittens.test.js && node test/guesswho.test.js && node test/guesswho.ui.test.js && node test/e2e.guesswho.test.js"
   },
   "dependencies": {
     "ws": "^8.18.0"

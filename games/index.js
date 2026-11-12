@@ -3,7 +3,7 @@
 // { id, name, desc, min, max, Game } and add it here, then add a client
 // renderer in public/games/<id>.js that registers window.Games[<id>].
 // Optional Game hooks: nextDeadline() / tick(now) for timer-driven phases.
-const list = [require('./flip7'), require('./kittens')];
+const list = [require('./flip7'), require('./kittens'), require('./guesswho')];
 
 const registry = Object.fromEntries(list.map((g) => [g.id, g]));
 const catalog = list.map(({ id, name, desc, min, max }) => ({ id, name, desc, min, max }));
